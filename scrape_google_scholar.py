@@ -1,4 +1,3 @@
-import json
 import time
 import random
 import re
@@ -11,10 +10,11 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
-from typing import List, Dict
+
+from utils import load_search_queries, write_results_to_csv
 
 QUERIES_FILEPATH = Path("search_strings.json")
-QUERIES_RESULT_PATH = Path("data") / "selenium_results_google_scholar.csv"
+QUERIES_RESULT_PATH = Path("data") / "google_scholar_search_results.csv"
 
 
 def get_driver():
@@ -129,23 +129,6 @@ def scrape_google_scholar_selenium(queries, pages_to_scrape=2):
         driver.quit()
 
     return pd.DataFrame(results_data)
-
-
-def load_search_queries(filepath: Path) -> List[Dict[str, str | List[str]]]:
-    with open(filepath, "r") as f:
-        return json.load(f)
-
-
-def write_results_to_csv(df: pd.DataFrame, filepath: Path) -> None:
-    print("Saving results to CSV...")
-
-    if df.empty:
-        print("No data to save.")
-        return
-
-    df.to_csv(filepath, index=False, encoding="utf-8-sig")
-    print(f"Saved to {filepath}")
-
 
 if __name__ == "__main__":
 
