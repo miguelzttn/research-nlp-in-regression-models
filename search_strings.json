@@ -1,0 +1,66 @@
+[
+    {
+        "category": "General",
+        "search_strings": [
+            "\"text regression\" AND (\"feature extraction\" OR \"text representation\")",
+            "\"regression with textual data\" AND \"text features\"",
+            "\"text-based regression\" AND NLP"
+        ]
+    },
+    {
+        "category": "Classic Methods",
+        "search_strings": [
+            "\"bag of words\" OR \"BoW\" AND regression AND \"text features\"",
+            "\"tf-idf\" OR \"tfidf\" AND regression AND \"feature extraction\"",
+            "\"n-grams\" AND regression AND \"text representation\""
+        ]
+    },
+    {
+        "category": "Dense Embeddings",
+        "search_strings": [
+            "\"word embeddings\" OR \"Word2Vec\" AND regression",
+            "\"GloVe\" AND regression AND \"text features\"",
+            "\"FastText\" AND regression AND \"feature extraction\""
+        ]
+    },
+    {
+        "category": "Contextual Embeddings",
+        "search_strings": [
+            "\"BERT embeddings\" AND regression",
+            "\"sentence transformers\" OR \"transformer embeddings\" AND regression",
+            "\"text encoders\" AND \"regression analysis\""
+        ]
+    },
+    {
+        "category": "Hybrid Methods",
+        "search_strings": [
+            "\"hybrid text features\" AND regression",
+            "\"combined text features\" AND regression",
+            "\"multi-modal text features\" AND regression"
+        ]
+    },
+    {
+        "category": "Comparison of methods",
+        "search_strings": [
+            "\"text feature extraction\" AND regression AND \"benchmark\"",
+            "\"comparison\" AND \"text features\" AND regression",
+            "\"text representation\" AND regression AND \"evaluation\""
+        ]
+    },
+    {
+        "category": "Literature Reviews",
+        "search_strings": [
+            "\"survey\" OR \"review\" AND \"text representation\" AND regression",
+            "\"review\" AND \"text feature extraction\" AND \"regression analysis\"",
+            "\"literature review\" AND \"NLP\" AND \"regression\""
+        ]
+    },
+    {
+        "category": "Applied cases",
+        "search_strings": [
+            "(\"news text\" OR \"financial text\") AND regression AND \"embeddings\"",
+            "\"economic text\" AND regression AND \"text features\"",
+            "(\"social media text\" OR \"sentiment analysis\") AND regression"
+        ]
+    }
+]

@@ -1,0 +1,6 @@
+# Python 3.13.9
+selenium==4.39.0 
+webdriver-manager==4.0.2 
+pandas==2.3.3
+beautifulsoup4==4.12.3
+tqdm==4.67.1
