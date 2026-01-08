@@ -14,8 +14,8 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 from utils import load_search_queries, write_results_to_csv
 
-QUERIES_FILEPATH = Path("scrapping") / "search_strings.json"
-QUERIES_RESULT_PATH = Path("scrapping") / "result" / "google_scholar_search_results.csv"
+QUERIES_FILEPATH = Path("1 - scrapping") / "search_strings.json"
+QUERIES_RESULT_PATH = Path("1 - scrapping") / "result" / "google_scholar_search_results.csv"
 
 
 def get_driver():
