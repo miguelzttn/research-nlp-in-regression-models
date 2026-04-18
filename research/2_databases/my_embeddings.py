@@ -18,6 +18,7 @@ _W2V_MODELS = {}
 _GLOVE_MODELS = {}
 _ROBERTA_TOKENIZERS = {}
 _ROBERTA_MODELS = {}
+_ROBERTA_DEVICES = {}
 _OPENAI_CLIENT = None
 
 def download_nltk_resources(name: str, resource: str):
@@ -153,13 +154,18 @@ def get_glove_embedding(text: str, model_name: str = 'glove-wiki-gigaword-100', 
 def _load_roberta_model(model_name: str = 'neuralmind/bert-base-portuguese-cased'):
     tokenizer = _ROBERTA_TOKENIZERS.get(model_name)
     model = _ROBERTA_MODELS.get(model_name)
-    if tokenizer is None or model is None:
+    device = _ROBERTA_DEVICES.get(model_name)
+    if tokenizer is None or model is None or device is None:
+        # Prefer CUDA for faster inference when available.
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         model = AutoModel.from_pretrained(model_name)
+        model.to(device)
         model.eval()
         _ROBERTA_TOKENIZERS[model_name] = tokenizer
         _ROBERTA_MODELS[model_name] = model
-    return tokenizer, model
+        _ROBERTA_DEVICES[model_name] = device
+    return tokenizer, model, device
 
 
 def get_roberta_embedding(text: str, model_name: str = 'roberta-base', max_length: int = 512) -> np.ndarray:
@@ -188,7 +194,7 @@ def get_roberta_embedding(text: str, model_name: str = 'roberta-base', max_lengt
     np.ndarray
         1-D embedding vector of shape (hidden_size,).
     """
-    tokenizer, model = _load_roberta_model(model_name)
+    tokenizer, model, device = _load_roberta_model(model_name)
 
     encoded = tokenizer(
         text,
@@ -197,6 +203,7 @@ def get_roberta_embedding(text: str, model_name: str = 'roberta-base', max_lengt
         max_length=max_length,
         padding=True,
     )
+    encoded = {key: value.to(device) for key, value in encoded.items()}
 
     with torch.no_grad():
         output = model(**encoded)
