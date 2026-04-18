@@ -15,7 +15,7 @@ from tqdm import tqdm
 from my_embeddings import (
 	fit_trained_embeddings,
 	get_embeddings,
-	get_roberta_embedding,
+	get_roberta_embeddings,
 	transform_trained_embeddings,
 	_tokenize_by_strategy,
 )
@@ -153,12 +153,17 @@ def _embed_with_untrained_sparse_backend(method: str, texts: List[str]) -> csr_m
 	return get_embeddings(strategy="document", text_inputs=texts, type=method)
 
 
-def _embed_with_roberta(texts: Iterable[str]) -> List[List[float]]:
-	vectors: List[List[float]] = []
-	for text in texts:
-		vec = get_roberta_embedding(text)
-		vectors.append(vec.astype(np.float32).tolist())
-	return vectors
+def _embed_with_roberta(
+	texts: Iterable[str],
+	batch_size: int = 32,
+	max_length: int = 512,
+) -> List[List[float]]:
+	vectors = get_roberta_embeddings(
+		[str(text) for text in texts],
+		max_length=max_length,
+		batch_size=batch_size,
+	)
+	return vectors.astype(np.float32).tolist()
 
 
 def _build_output_for_method(
@@ -169,9 +174,15 @@ def _build_output_for_method(
 	texts: List[str],
 	split: str,
 	dataset_name: str,
+	roberta_batch_size: int,
+	roberta_max_length: int,
 ) -> pl.DataFrame:
 	if method == "RoBERTa":
-		vectors = _embed_with_roberta(texts)
+		vectors = _embed_with_roberta(
+			texts,
+			batch_size=roberta_batch_size,
+			max_length=roberta_max_length,
+		)
 		out_df = base_df.with_columns(
 			pl.Series(name="embedding", values=vectors),
 			pl.lit(method).alias("embedding_method"),
@@ -221,7 +232,14 @@ def _build_output_for_method(
 	return out_df
 
 
-def process_dataset_split(split: str, dataset_name: str, dataset_cfg: Dict[str, object], methods: List[str]) -> None:
+def process_dataset_split(
+	split: str,
+	dataset_name: str,
+	dataset_cfg: Dict[str, object],
+	methods: List[str],
+	roberta_batch_size: int,
+	roberta_max_length: int,
+) -> None:
 	db_root = _db_root()
 	input_dir = db_root / split / dataset_name
 	input_parquet = input_dir / f"{dataset_name}.parquet"
@@ -242,19 +260,42 @@ def process_dataset_split(split: str, dataset_name: str, dataset_cfg: Dict[str, 
 
 	for method in methods:
 		print(f"[INFO] Processing split={split} dataset={dataset_name} method={method}")
-		out_df = _build_output_for_method(method, source_df, target_column, base_df, texts, split, dataset_name)
+		out_df = _build_output_for_method(
+			method,
+			source_df,
+			target_column,
+			base_df,
+			texts,
+			split,
+			dataset_name,
+			roberta_batch_size,
+			roberta_max_length,
+		)
 		out_path = input_dir / f"{dataset_name}__{_method_slug(method)}.parquet"
 		out_df.write_parquet(out_path)
 		print(f"[OK] Wrote {out_path}")
 
 
-def run_embeddings(splits: List[str], datasets: List[str], methods: List[str]) -> None:
+def run_embeddings(
+	splits: List[str],
+	datasets: List[str],
+	methods: List[str],
+	roberta_batch_size: int,
+	roberta_max_length: int,
+) -> None:
 	# Ensure train is always processed before test so fitted states are available.
 	ordered_splits = sorted(splits, key=lambda s: (0 if s == "train" else 1))
 	for split in ordered_splits:
 		for dataset_name in datasets:
 			dataset_cfg = DATASET_CONFIG[dataset_name]
-			process_dataset_split(split, dataset_name, dataset_cfg, methods)
+			process_dataset_split(
+				split,
+				dataset_name,
+				dataset_cfg,
+				methods,
+				roberta_batch_size,
+				roberta_max_length,
+			)
 
 
 def _validate_selection(name: str, values: List[str], valid_values: List[str]) -> None:
@@ -287,6 +328,18 @@ def parse_args() -> argparse.Namespace:
 		default=EMBEDDING_METHODS,
 		help="Embedding methods to run.",
 	)
+	parser.add_argument(
+		"--roberta-batch-size",
+		type=int,
+		default=32,
+		help="Batch size for RoBERTa inference.",
+	)
+	parser.add_argument(
+		"--roberta-max-length",
+		type=int,
+		default=512,
+		help="Max token length for RoBERTa inputs.",
+	)
 	return parser.parse_args()
 
 
@@ -295,12 +348,26 @@ def main() -> None:
 	splits = list(args.splits)
 	datasets = list(args.datasets)
 	methods = list(args.methods)
+	roberta_batch_size = int(args.roberta_batch_size)
+	roberta_max_length = int(args.roberta_max_length)
 
 	_validate_selection("splits", splits, list(VALID_SPLITS))
 	_validate_selection("datasets", datasets, list(DATASET_CONFIG.keys()))
 	_validate_selection("methods", methods, EMBEDDING_METHODS)
 
-	run_embeddings(splits=splits, datasets=datasets, methods=methods)
+	if roberta_batch_size < 1:
+		raise ValueError("--roberta-batch-size must be >= 1")
+
+	if roberta_max_length < 1:
+		raise ValueError("--roberta-max-length must be >= 1")
+
+	run_embeddings(
+		splits=splits,
+		datasets=datasets,
+		methods=methods,
+		roberta_batch_size=roberta_batch_size,
+		roberta_max_length=roberta_max_length,
+	)
 
 
 if __name__ == "__main__":

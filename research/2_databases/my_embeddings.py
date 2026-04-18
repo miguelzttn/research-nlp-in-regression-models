@@ -168,6 +168,77 @@ def _load_roberta_model(model_name: str = 'neuralmind/bert-base-portuguese-cased
     return tokenizer, model, device
 
 
+def get_roberta_embeddings(
+    texts: Sequence[str],
+    model_name: str = 'roberta-base',
+    max_length: int = 512,
+    batch_size: int = 32,
+) -> np.ndarray:
+    """
+    Transform a sequence of texts into fixed-size embeddings using a
+    pretrained RoBERTa model.
+
+    Uses batched inference to improve throughput and GPU utilization.
+
+    Parameters
+    ----------
+    texts : Sequence[str]
+        Input texts to embed.
+    model_name : str
+        Hugging Face model identifier (default: 'roberta-base').
+    max_length : int
+        Maximum number of tokens passed to the model (default: 512).
+    batch_size : int
+        Number of texts processed per forward pass (default: 32).
+
+    Returns
+    -------
+    np.ndarray
+        2-D embedding matrix of shape (n_texts, hidden_size).
+    """
+    if texts is None:
+        raise ValueError("texts cannot be None.")
+
+    if len(texts) == 0:
+        return np.zeros((0, 0), dtype=np.float32)
+
+    if batch_size < 1:
+        raise ValueError("batch_size must be >= 1.")
+
+    tokenizer, model, device = _load_roberta_model(model_name)
+
+    vectors = []
+    use_amp = device.type == 'cuda'
+
+    for start in tqdm(range(0, len(texts), batch_size), desc='RoBERTa batches'):
+        batch_texts = [str(text) for text in texts[start:start + batch_size]]
+        encoded = tokenizer(
+            batch_texts,
+            return_tensors='pt',
+            truncation=True,
+            max_length=max_length,
+            padding=True,
+        )
+        encoded = {key: value.to(device) for key, value in encoded.items()}
+
+        with torch.inference_mode():
+            with torch.autocast(device_type='cuda', dtype=torch.float16, enabled=use_amp):
+                output = model(**encoded)
+
+            # Mean pooling over token dimension, ignoring padding tokens.
+            token_embeddings = output.last_hidden_state             # (batch, seq_len, hidden)
+            attention_mask = encoded['attention_mask']              # (batch, seq_len)
+            mask_expanded = attention_mask.unsqueeze(-1).float()    # (batch, seq_len, 1)
+
+            sum_embeddings = (token_embeddings * mask_expanded).sum(dim=1)  # (batch, hidden)
+            sum_mask = mask_expanded.sum(dim=1).clamp(min=1e-9)              # (batch, 1)
+            batch_embeddings = sum_embeddings / sum_mask                      # (batch, hidden)
+
+        vectors.append(batch_embeddings.cpu().numpy().astype(np.float32))
+
+    return np.vstack(vectors).astype(np.float32)
+
+
 def get_roberta_embedding(text: str, model_name: str = 'roberta-base', max_length: int = 512) -> np.ndarray:
     """
     Transform a text string into a fixed-size embedding vector using a
@@ -194,30 +265,12 @@ def get_roberta_embedding(text: str, model_name: str = 'roberta-base', max_lengt
     np.ndarray
         1-D embedding vector of shape (hidden_size,).
     """
-    tokenizer, model, device = _load_roberta_model(model_name)
-
-    encoded = tokenizer(
-        text,
-        return_tensors='pt',
-        truncation=True,
+    return get_roberta_embeddings(
+        [text],
+        model_name=model_name,
         max_length=max_length,
-        padding=True,
-    )
-    encoded = {key: value.to(device) for key, value in encoded.items()}
-
-    with torch.no_grad():
-        output = model(**encoded)
-
-    # Mean pooling over token dimension, ignoring padding tokens
-    token_embeddings = output.last_hidden_state          # (1, seq_len, hidden)
-    attention_mask = encoded['attention_mask']            # (1, seq_len)
-    mask_expanded = attention_mask.unsqueeze(-1).float()  # (1, seq_len, 1)
-
-    sum_embeddings = (token_embeddings * mask_expanded).sum(dim=1)  # (1, hidden)
-    sum_mask = mask_expanded.sum(dim=1).clamp(min=1e-9)             # (1, 1)
-    embedding = (sum_embeddings / sum_mask).squeeze(0)              # (hidden,)
-
-    return embedding.cpu().numpy().astype(np.float32)
+        batch_size=1,
+    )[0]
 
 
 def _tokenize_by_strategy(text: str, strategy: str, idiom: str = 'english'):
@@ -424,7 +477,7 @@ def get_embeddings(strategy: str, text_inputs, type: str, idiom: str = 'english'
         return csr_matrix(dense_vectors)
 
     if embedding_type == 'roberta':
-        dense_vectors = np.vstack([get_roberta_embedding(text) for text in tqdm(text_inputs)])
+        dense_vectors = get_roberta_embeddings([str(text) for text in text_inputs])
         return csr_matrix(dense_vectors) # Retorna como matriz densa (apesar do nome csr)
     
     if embedding_type == 'openai':
