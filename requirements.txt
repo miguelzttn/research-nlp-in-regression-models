@@ -4,3 +4,12 @@ webdriver-manager==4.0.2
 pandas==2.3.3
 beautifulsoup4==4.12.3
 tqdm==4.67.1
+
+plotly==6.5.2
+kaleido==1.2.0
+
+nltk
+gensim
+transformers
+torch
+python-dotenv
