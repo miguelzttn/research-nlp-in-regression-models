@@ -37,13 +37,13 @@ DATASET_CONFIG: Dict[str, Dict[str, object]] = {
 }
 
 EMBEDDING_METHODS = [
-	#"BoW",
-	#"n-gram+BoW",
-	#"TF-IDF",
-	#"Word2Vec",
-	#"GloVe",
+	"BoW",
+	"n-gram+BoW",
+	"TF-IDF",
+	"Word2Vec",
+	"GloVe",
 	"RoBERTa",
-	#"OpenAI",
+	# "OpenAI", # Estoura a capacidade de tokens da API; Usar levaria a manipulações que distorcem a análise.
 ]
 
 SPARSE_METHODS = {"BoW", "n-gram+BoW", "TF-IDF"}
