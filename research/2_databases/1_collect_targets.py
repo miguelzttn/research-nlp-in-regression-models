@@ -103,7 +103,7 @@ if __name__ == "__main__":
 
     run_for_ds(
         ds_name="3_music",
-        ds_glob_pattern=(BASE / "1_datasets/abt/3_abt_song_lyric_views.parquet").as_posix(),
-        target_column="n_views",
+        ds_glob_pattern=(BASE / "1_datasets/abt/3_1_abt_song_lyric_spotify_listeners_6_months.parquet").as_posix(),
+        target_column="streams_total_min",
         output_base_dir=str(BASE / "2_databases/db"),
     )

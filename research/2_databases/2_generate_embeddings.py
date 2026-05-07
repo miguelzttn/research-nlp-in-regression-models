@@ -31,7 +31,7 @@ DATASET_CONFIG: Dict[str, Dict[str, object]] = {
 		"text_columns": ["texto"],
 	},
 	"3_music": {
-		"target_column": "n_views",
+		"target_column": "streams_total_min",
 		"text_columns": ["lyrics"],
 	},
 }
@@ -43,7 +43,7 @@ EMBEDDING_METHODS = [
 	"Word2Vec",
 	"GloVe",
 	"RoBERTa",
-	# "OpenAI", # Estoura a capacidade de tokens da API; Usar levaria a manipulações que distorcem a análise.
+	"OpenAI",
 ]
 
 SPARSE_METHODS = {"BoW", "n-gram+BoW", "TF-IDF"}
