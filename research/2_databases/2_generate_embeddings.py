@@ -22,14 +22,14 @@ from my_embeddings import (
 
 
 DATASET_CONFIG: Dict[str, Dict[str, object]] = {
-	"1_walmes": {
-		"target_column": "vl_price",
-		"text_columns": ["nm_title", "nm_description"],
-	},
-	"2_copom": {
-		"target_column": "selic_next_var",
-		"text_columns": ["texto"],
-	},
+	# "1_walmes": {
+	# 	"target_column": "vl_price",
+	# 	"text_columns": ["nm_title", "nm_description"],
+	# },
+	# "2_copom": {
+	# 	"target_column": "selic_next_var",
+	# 	"text_columns": ["texto"],
+	# },
 	"3_music": {
 		"target_column": "streams_total_min",
 		"text_columns": ["lyrics"],
