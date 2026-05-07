@@ -208,3 +208,6 @@ __marimo__/
 
 # Raw input files
 research/1_datasets/raw/*
+
+# DuckDB database files
+*/**.duckdb
