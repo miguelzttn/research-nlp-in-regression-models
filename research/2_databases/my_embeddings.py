@@ -1,4 +1,5 @@
 import os
+import re
 
 import nltk
 import numpy as np
@@ -350,9 +351,20 @@ def _mean_embedding_from_tokens(model, tokens: Sequence[str]) -> np.ndarray:
     return np.mean(vectors, axis=0).astype(np.float32)
 
 
-def _prepare_openai_text(text: str, max_chars: int = 20000) -> str:
+def _prepare_openai_text(text: str, max_chars: int = 10_000) -> str:
     # Keep payload compact and avoid newline-heavy inputs.
-    return str(text).replace("\n", " ")[:max_chars]
+    text = str(text).replace("\n", " ")
+    text = re.sub(r'\s+', ' ', text)
+    
+    if len(text) > max_chars:
+        # collect the last max_chars/2 characters, which are more likely 
+        # to contain the target information for our datasets.
+        text = text[-(max_chars // 2):]
+    
+    if text == "":
+        text = " "  # OpenAI API does not accept empty strings, so use a single space as a placeholder.
+        
+    return text
 
 
 def _openai_embedding_default_dim(model_name: str) -> int:
